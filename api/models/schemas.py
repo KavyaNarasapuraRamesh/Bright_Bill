@@ -67,3 +67,22 @@ class AnomalyResponse(BaseModel):
     type: str
     description: str
     severity: str
+
+class ApplianceUsageRequest(BaseModel):
+    air_conditioner: float = 0
+    refrigerator: float = 24
+    water_heater: float = 0
+    clothes_dryer: float = 0
+    washing_machine: float = 0
+    household_size: int = 3
+    home_sqft: int = 1800
+
+class CombinedPredictionRequest(BaseModel):
+    bill_id: int
+    air_conditioner: float = 0
+    refrigerator: float = 24
+    water_heater: float = 0
+    clothes_dryer: float = 0
+    washing_machine: float = 0
+    household_size: int = 3
+    home_sqft: int = 1800
