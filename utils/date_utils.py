@@ -1,26 +1,23 @@
+# utils/date_utils.py
 from datetime import datetime
+from dateutil import parser
 
-def parse_date(date_string):
-    """Parse date string into ISO format YYYY-MM-DD"""
-    try:
-        # Try various formats
-        formats = [
-            "%B %d, %Y",  # January 19, 2024
-            "%b %d, %Y",  # Jan 19, 2024
-            "%b %d %Y",   # Jan 19 2024
-            "%m/%d/%Y",   # 01/19/2024
-            "%m-%d-%Y"    # 01-19-2024
-        ]
+def standardize_date_format(date_str):
+    """Convert various date formats to YYYY-MM-DD"""
+    if not date_str:
+        return None
         
-        for fmt in formats:
+    try:
+        # Try different common formats
+        for fmt in ['%B %d, %Y', '%b %d, %Y', '%m/%d/%Y', '%Y-%m-%d', '%d-%m-%Y']:
             try:
-                return datetime.strptime(date_string, fmt).strftime("%Y-%m-%d")
+                dt = datetime.strptime(date_str, fmt)
+                return dt.strftime('%Y-%m-%d')
             except ValueError:
                 continue
                 
-        # If all formats fail, return None
-        print(f"Could not parse date: {date_string}")
-        return None
-    except Exception as e:
-        print(f"Error parsing date {date_string}: {e}")
+        # If still here, try with dateutil parser
+        dt = parser.parse(date_str)
+        return dt.strftime('%Y-%m-%d')
+    except:
         return None
