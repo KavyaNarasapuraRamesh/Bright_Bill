@@ -198,5 +198,30 @@
     "non_standard_credit": -0.27,
     "utility_charges": 45.99,
     "supplier_charges": 61.17
+  },
+  {
+    "account_number": "110 165 240 562",
+    "customer_name": "RUSHITHA CHITTIBOMMA",
+    "billing_start_date": "2024-04-16",
+    "billing_end_date": "2024-05-14",
+    "days_in_billing_period": 29,
+    "bill_date": "2024-05-20",
+    "due_date": "2024-06-10",
+    "kwh_used": 442,
+    "meter_start_value": 14409,
+    "meter_end_value": 14851,
+    "avg_daily_usage": 15,
+    "avg_daily_temperature": 59,
+    "total_bill_amount": 91.79,
+    "utility_price_to_compare": 11.0,
+    "supplier_rate": 0.119,
+    "customer_charge": 4.0,
+    "distribution_related_component": 23.03,
+    "cost_recovery_charges": 13.38,
+    "consumer_rate_credit": -1.02,
+    "distribution_credit": null,
+    "non_standard_credit": null,
+    "utility_charges": 39.39,
+    "supplier_charges": 52.6
   }
 ]

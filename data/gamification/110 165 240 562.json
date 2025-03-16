@@ -1,6 +1,6 @@
 {
   "account_number": "110 165 240 562",
-  "total_points": 55,
+  "total_points": 105,
   "achievements": [
     {
       "title": "Energy Explorer",
@@ -17,6 +17,30 @@
       "badge": "tree",
       "id": "usage_reduction_20",
       "date": "2025-03-15"
+    },
+    {
+      "title": "Efficiency Expert",
+      "description": "Reduced your energy usage by 10% compared to last month",
+      "points": 25,
+      "badge": "leaf",
+      "id": "usage_reduction_10",
+      "date": "2025-03-16"
+    },
+    {
+      "title": "Energy Saver",
+      "description": "Reduced your energy usage by 5% compared to last month",
+      "points": 10,
+      "badge": "seedling",
+      "id": "usage_reduction_5",
+      "date": "2025-03-16"
+    },
+    {
+      "title": "Consistent Conserver",
+      "description": "Reduced usage for 2 months in a row",
+      "points": 15,
+      "badge": "fire",
+      "id": "reduction_streak_2",
+      "date": "2025-03-16"
     }
   ],
   "history": [
@@ -24,9 +48,24 @@
       "date": "2025-03-15",
       "kwh_used": 514,
       "points_earned": 55
+    },
+    {
+      "date": "2025-03-16",
+      "kwh_used": 669,
+      "points_earned": 0
+    },
+    {
+      "date": "2025-03-16",
+      "kwh_used": 442,
+      "points_earned": 25
+    },
+    {
+      "date": "2025-03-16",
+      "kwh_used": 442,
+      "points_earned": 25
     }
   ],
-  "reduction_streak": 1,
-  "last_bill_kwh": 514,
-  "last_bill_date": "2025-03-15"
+  "reduction_streak": 2,
+  "last_bill_kwh": 442,
+  "last_bill_date": "2025-03-16"
 }

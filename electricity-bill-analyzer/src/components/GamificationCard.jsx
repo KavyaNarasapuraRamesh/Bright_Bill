@@ -48,16 +48,43 @@ const BADGE_ICONS = {
 function GamificationCard({ gamification }) {
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   
-  if (!gamification) return null;
+  // Debug log
+  console.log("Gamification data received:", gamification);
   
-  const { level, total_points, new_achievements, recent_achievements, reduction_streak } = gamification;
+  if (!gamification) {
+    console.log("No gamification data available");
+    return null;
+  }
+  
+  // Extract gamification properties with fallbacks for any missing data
+  const { 
+    level = { name: "Energy Novice", progress: 0, points_to_next_level: 50, next_level: "Energy Apprentice" }, 
+    total_points = 0, 
+    reduction_streak = 0
+  } = gamification;
+  
+  // Handle both possible achievement data structures
+  let new_achievements = [];
+  let recent_achievements = [];
+  
+  if (Array.isArray(gamification.new_achievements)) {
+    new_achievements = gamification.new_achievements;
+  }
+  
+  if (Array.isArray(gamification.recent_achievements)) {
+    recent_achievements = gamification.recent_achievements;
+  } else if (Array.isArray(gamification.achievements)) {
+    // If we have a simple array of achievements, use that for both
+    new_achievements = gamification.achievements || [];
+    recent_achievements = gamification.achievements || [];
+  }
   
   // Determine which achievements to show
   const displayAchievements = showAllAchievements 
-    ? gamification.recent_achievements 
-    : gamification.new_achievements.length > 0 
-      ? gamification.new_achievements 
-      : gamification.recent_achievements.slice(0, 3);
+    ? recent_achievements 
+    : new_achievements.length > 0 
+      ? new_achievements 
+      : recent_achievements.slice(0, 3);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
