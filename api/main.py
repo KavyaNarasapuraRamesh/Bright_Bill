@@ -20,7 +20,8 @@ import os
 
 load_dotenv()
 
-api_key = os.getenv("GEMINI_API_KEY")
+#api_key = os.getenv("GEMINI_API_KEY")
+api_key = "AIzaSyD7sb6xFqv4lWvVW9KhtHVSbJ9tG4L6E2E"
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -78,7 +79,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, change to your frontend domain
+    allow_origins=["http://localhost:3000"],  # In production, change to your frontend domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -245,7 +246,7 @@ async def get_anomalies(bill_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/upload")
-async def upload_bill(file: UploadFile = File(...), future_months: int = 3):
+async def upload_bill(file: UploadFile = File(...), future_months: int = 3, print_enabled: bool = Form(False)):
     try:
         # Save uploaded file
         file_path = f"data/raw/{file.filename}"
@@ -258,20 +259,16 @@ async def upload_bill(file: UploadFile = File(...), future_months: int = 3):
         
         if not bill_data:
             raise HTTPException(status_code=422, detail="Failed to extract data from bill")
-        save_bill_data_to_history(bill_data)
-        
-        # Check if retraining is needed
-        if os.path.exists('data/models/retrain_needed.txt'):
-            # For a hackathon, this can be done synchronously
-            # In production, this should be a background task
-            print("Retraining models with latest historical data")
-            retrain_models_with_history()
+            
         # Apply date preprocessing
         for col in ['bill_date', 'billing_start_date', 'billing_end_date', 'due_date']:
             if col in bill_data and bill_data[col]:
                 bill_data[col] = standardize_date_format(bill_data[col])
         
-        # Save to our database
+        # Save only the extracted bill data to the historical dataset
+        save_bill_data_to_history(bill_data)
+        
+        # Save the bill data to our combined_bills.json file
         combined_path = 'data/processed/combined_bills.json'
         try:
             with open(combined_path, 'r') as f:
@@ -283,50 +280,30 @@ async def upload_bill(file: UploadFile = File(...), future_months: int = 3):
         with open(combined_path, 'w') as f:
             json.dump(existing_bills, f, indent=2, default=str)
         
+        # Check if retraining is needed - do this after saving the data
+        if os.path.exists('data/models/retrain_needed.txt'):
+            # For a hackathon, this can be done synchronously
+            # In production, this should be a background task
+            print("Retraining models with latest historical data")
+            retrain_models_with_history()
+        
         # Get basic user info
         user_info = {
             "account_number": bill_data.get('account_number'),
             "customer_name": bill_data.get('customer_name')
         }
         
+        # Extract current usage and bill amount
+        current_bill = {
+            "kwh_used": bill_data.get('kwh_used'),
+            "total_bill_amount": bill_data.get('total_bill_amount')
+        }
+        
         # Detect anomalies
         anomalies = anomaly_detector.detect_anomalies(bill_data)
         
-        # Generate predictions
-        predictions = []
-        try:
-            # Create a dataframe from the bill data
-            df = pd.DataFrame([bill_data])
-            
-            # Convert date columns to datetime
-            date_columns = ['bill_date', 'billing_start_date', 'billing_end_date', 'due_date']
-            for col in date_columns:
-                if col in df.columns and df[col].iloc[0]:
-                    df[col] = pd.to_datetime(df[col], errors='coerce')
-            
-            # Get usage predictions
-            usage_predictions = prediction_service.usage_predictor.predict(df, future_months=future_months)
-            
-            if usage_predictions is not None:
-                # For each predicted month
-                for _, row in usage_predictions.iterrows():
-                    # Get the predicted kWh
-                    kwh_prediction = row['predicted_kwh']
-                    
-                    # Calculate the cost based on predicted kWh
-                    cost_prediction = prediction_service.cost_predictor.predict_cost(kwh_prediction)
-                    
-                    if cost_prediction:
-                        # Add prediction to results
-                        predictions.append({
-                            "prediction_date": row['prediction_date'],
-                            "predicted_kwh": kwh_prediction,
-                            "total_bill_amount": cost_prediction['total_bill_amount'],
-                            "utility_charges": cost_prediction['utility_charges'],
-                            "supplier_charges": cost_prediction['supplier_charges']
-                        })
-        except Exception as e:
-            print(f"Error generating predictions: {str(e)}")
+        # Generate predictions directly from this bill only
+        predictions = prediction_service.predict_from_single_bill(bill_data, future_months=future_months)
         
         # Generate AI recommendations using Gemini
         ai_recommendations = recommendation_service.generate_insights(bill_data, predictions, anomalies)
@@ -334,8 +311,10 @@ async def upload_bill(file: UploadFile = File(...), future_months: int = 3):
         # Return response with all components
         response = {
             "user_info": user_info,
-            "predictions": predictions,
-            "ai_recommendations": ai_recommendations
+            "current_bill": current_bill,
+            "predictions": predictions,  # Include predictions in response but don't save them
+            "ai_recommendations": ai_recommendations,
+            "print_enabled": print_enabled
         }
         
         # Add anomalies if any were found
@@ -544,7 +523,7 @@ async def predict_combined(
             if not bill_data:
                 raise HTTPException(status_code=422, detail="Failed to extract data from bill")
                 
-            # Save to historical dataset and our database
+            # Save extracted bill data to history
             save_bill_data_to_history(bill_data)
             
             # Apply date preprocessing
@@ -552,7 +531,7 @@ async def predict_combined(
                 if col in bill_data and bill_data[col]:
                     bill_data[col] = standardize_date_format(bill_data[col])
             
-            # Save to our database
+            # Save the raw bill data to our database
             combined_path = 'data/processed/combined_bills.json'
             try:
                 with open(combined_path, 'r') as f:
@@ -656,10 +635,49 @@ async def predict_combined(
                         "percentage": round(proportion * 100, 1)
                     }
         
+        # Generate future predictions (3 months) similar to bill upload - but don't save them
+        predictions = []
+        future_months = 3
+        
+        try:
+            # Create base prediction
+            base_prediction = {
+                "prediction_date": datetime.now().strftime("%Y-%m-%d"),
+                "predicted_kwh": round(kwh_prediction, 2),
+                "total_bill_amount": round(estimated_cost, 2),
+                "utility_charges": round(estimated_cost * 0.55, 2),  # Example split
+                "supplier_charges": round(estimated_cost * 0.45, 2)  # Example split
+            }
+            
+            # Add first month prediction
+            predictions.append(base_prediction)
+            
+            # Add additional months with slight variations
+            for i in range(1, future_months):
+                # Calculate future date
+                future_date = (datetime.now() + timedelta(days=30 * i)).strftime("%Y-%m-%d")
+                
+                # Add some variation to predictions (5% increase per month as an example)
+                variation_factor = 1 + (0.05 * i)
+                
+                future_kwh = round(kwh_prediction * variation_factor, 2)
+                future_cost = round(future_kwh * 0.15, 2)
+                
+                predictions.append({
+                    "prediction_date": future_date,
+                    "predicted_kwh": future_kwh,
+                    "total_bill_amount": future_cost,
+                    "utility_charges": round(future_cost * 0.55, 2),
+                    "supplier_charges": round(future_cost * 0.45, 2)
+                })
+        except Exception as e:
+            print(f"Error generating multiple predictions: {str(e)}")
+            # Still continue even if this fails
+        
         # Generate AI recommendations
         ai_recommendations = generate_combined_recommendations(bill_data, appliance_usage, kwh_prediction, breakdown)
         
-        # Return combined result
+        # Return combined result with current usage/bill info and 3-month predictions
         return {
             "user_info": {
                 "account_number": bill_data.get('account_number'),
@@ -674,6 +692,7 @@ async def predict_combined(
                 "kwh_used": bill_data.get('kwh_used'),
                 "total_bill_amount": bill_data.get('total_bill_amount')
             },
+            "predictions": predictions,  # Include in response but don't save to database
             "ai_recommendations": ai_recommendations
         }
         

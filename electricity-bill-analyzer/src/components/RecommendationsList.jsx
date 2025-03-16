@@ -1,4 +1,3 @@
-// components/RecommendationsList.jsx
 function RecommendationsList({ recommendations }) {
     if (!recommendations || recommendations.length === 0) {
       return null;

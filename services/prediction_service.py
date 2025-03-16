@@ -18,7 +18,7 @@ class PredictionService:
         self.cost_predictor = CostPredictor()
         self.anomaly_detector = AnomalyDetector()
         
-        # Load historical data
+        # Load historical data - only use for existing bills, not current prediction
         self.historical_data = self._load_historical_data()
     
     def predict_future_bills(self, account_number, months=3):
@@ -99,9 +99,60 @@ class PredictionService:
             date_columns = ['bill_date', 'billing_start_date', 'billing_end_date', 'due_date']
             for col in date_columns:
                 if col in df.columns:
-                    df[col] = pd.to_datetime(df[col])
+                    df[col] = pd.to_datetime(df[col], errors='coerce')
             
             return df
         except Exception as e:
             print(f"Error loading historical data: {e}")
             return None
+            
+    def predict_from_single_bill(self, bill_data, future_months=3):
+        """
+        Make predictions based only on a single bill without relying on historical data
+        
+        Args:
+            bill_data: Dictionary with current bill data
+            future_months: Number of months to predict
+            
+        Returns:
+            List of prediction dictionaries
+        """
+        try:
+            # Create a DataFrame from just this bill
+            df = pd.DataFrame([bill_data])
+            
+            # Convert date columns to datetime
+            date_columns = ['bill_date', 'billing_start_date', 'billing_end_date', 'due_date']
+            for col in date_columns:
+                if col in df.columns and df[col].iloc[0]:
+                    df[col] = pd.to_datetime(df[col], errors='coerce')
+            
+            # Get usage predictions
+            usage_predictions = self.usage_predictor.predict(df, future_months=future_months)
+            
+            if usage_predictions is None:
+                print("Failed to generate usage predictions from single bill")
+                return []
+            
+            predictions = []
+            for _, row in usage_predictions.iterrows():
+                kwh_prediction = row['predicted_kwh']
+                
+                # Calculate the cost based on predicted kWh
+                cost_prediction = self.cost_predictor.predict_cost(kwh_prediction)
+                
+                if cost_prediction:
+                    predictions.append({
+                        "prediction_date": row['prediction_date'],
+                        "predicted_kwh": kwh_prediction,
+                        "total_bill_amount": cost_prediction['total_bill_amount'],
+                        "utility_charges": cost_prediction['utility_charges'],
+                        "supplier_charges": cost_prediction['supplier_charges']
+                    })
+                    
+            return predictions
+        except Exception as e:
+            print(f"Error predicting from single bill: {e}")
+            import traceback
+            traceback.print_exc()
+            return []

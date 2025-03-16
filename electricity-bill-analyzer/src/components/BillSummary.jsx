@@ -1,4 +1,3 @@
-// components/BillSummary.jsx
 function BillSummary({ userInfo, currentBill }) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">

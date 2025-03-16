@@ -1,4 +1,3 @@
-// components/ApplianceSimulator.jsx
 import { useState } from 'react';
 
 function ApplianceSimulator({ onSubmit }) {

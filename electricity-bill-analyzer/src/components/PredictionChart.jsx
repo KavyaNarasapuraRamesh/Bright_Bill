@@ -1,15 +1,26 @@
-// components/PredictionChart.jsx
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function PredictionChart({ predictions }) {
-  // Format data for the chart
-  const chartData = predictions.map(prediction => ({
-    date: new Date(prediction.prediction_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-    kwh: prediction.predicted_kwh,
-    cost: prediction.total_bill_amount,
-    utility: prediction.utility_charges,
-    supplier: prediction.supplier_charges
-  }));
+  // Add safety check for missing predictions
+  if (!predictions || !Array.isArray(predictions) || predictions.length === 0) {
+    return (
+      <div className="bg-gray-50 p-4 rounded-lg text-center">
+        <p className="text-gray-500">No prediction data available</p>
+      </div>
+    );
+  }
+
+  // Format data for the chart with safer property access
+  const chartData = predictions.map(prediction => {
+    // Use optional chaining and default values to handle different data structures
+    return {
+      date: new Date(prediction.prediction_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+      kwh: prediction.predicted_kwh || 0,
+      cost: prediction.total_bill_amount || 0,
+      utility: prediction.utility_charges || 0,
+      supplier: prediction.supplier_charges || 0
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -57,14 +68,18 @@ function PredictionChart({ predictions }) {
                 <span className="text-gray-600">Bill Amount:</span>
                 <span className="font-medium">${month.cost}</span>
               </p>
-              <p className="flex justify-between">
-                <span className="text-gray-600">Utility Charges:</span>
-                <span className="font-medium">${month.utility}</span>
-              </p>
-              <p className="flex justify-between">
-                <span className="text-gray-600">Supplier Charges:</span>
-                <span className="font-medium">${month.supplier}</span>
-              </p>
+              {month.utility > 0 && (
+                <p className="flex justify-between">
+                  <span className="text-gray-600">Utility Charges:</span>
+                  <span className="font-medium">${month.utility}</span>
+                </p>
+              )}
+              {month.supplier > 0 && (
+                <p className="flex justify-between">
+                  <span className="text-gray-600">Supplier Charges:</span>
+                  <span className="font-medium">${month.supplier}</span>
+                </p>
+              )}
             </div>
           </div>
         ))}
