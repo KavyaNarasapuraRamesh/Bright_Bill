@@ -30,7 +30,12 @@ recommendation_service = GeminiRecommendationService(api_key=api_key)
 from scripts.direct_gemini_extraction import extract_bill_data
 from services.prediction_service import PredictionService
 from ml_models.anomaly_detector import AnomalyDetector
-
+from utils.weather_adjustment import compare_bills_weather_adjusted, get_weather_impact_text
+from utils.gamification import (
+    load_user_gamification_data, 
+    check_achievements, 
+    generate_gamification_summary
+)
 
 
 # Load pre-trained ML models
@@ -322,6 +327,51 @@ async def upload_bill(file: UploadFile = File(...), future_months: int = 3, prin
             response["anomalies"] = anomalies
         else:
             response["anomalies"] = [{"type": "info", "description": "No anomalies detected in your bill.", "severity": "low"}]
+        # Add weather comparison if previous bill exists
+        weather_comparison = None
+        account_number = bill_data.get('account_number')
+
+        try:
+            # Find previous bill for this account
+            with open('data/processed/combined_bills.json', 'r') as f:
+                all_bills = json.load(f)
+            
+            previous_bills = [b for b in all_bills 
+                            if b.get('account_number') == account_number
+                            and b.get('bill_date') < bill_data.get('bill_date')]
+            
+            if previous_bills:
+                # Get most recent previous bill
+                previous_bill = sorted(
+                    previous_bills, 
+                    key=lambda b: b.get('bill_date', '2000-01-01'),
+                    reverse=True
+                )[0]
+                
+                # Calculate weather-adjusted comparison
+                weather_comparison = compare_bills_weather_adjusted(bill_data, previous_bill)
+                weather_comparison['explanation'] = get_weather_impact_text(weather_comparison)
+                
+                # Add gamification
+                user_data = load_user_gamification_data(account_number)
+                updated_user_data, new_achievements = check_achievements(bill_data, previous_bill, user_data)
+                gamification_summary = generate_gamification_summary(updated_user_data, new_achievements)
+                
+                # Add to response
+                response["weather_comparison"] = weather_comparison
+                response["gamification"] = gamification_summary
+            else:
+                # First bill - just add gamification
+                user_data = load_user_gamification_data(account_number)
+                updated_user_data, new_achievements = check_achievements(bill_data, None, user_data)
+                gamification_summary = generate_gamification_summary(updated_user_data, new_achievements)
+                
+                # Add to response
+                response["gamification"] = gamification_summary
+                
+        except Exception as comparison_error:
+            print(f"Error generating comparison data: {str(comparison_error)}")
+            # Non-fatal error, continue without comparison
         
         return response
         
@@ -775,3 +825,67 @@ def generate_combined_recommendations(bill_data, appliance_usage, kwh_prediction
     except Exception as e:
         print(f"Error generating combined recommendations: {str(e)}")
         return []
+    
+
+@app.get("/api/weather-comparison/{bill_id}")
+async def get_weather_comparison(bill_id: int):
+    """Get weather-adjusted comparison between this bill and the previous one"""
+    try:
+        # Load bills
+        with open('data/processed/combined_bills.json', 'r') as f:
+            bills = json.load(f)
+        
+        if bill_id < 1 or bill_id > len(bills):
+            raise HTTPException(status_code=404, detail="Bill not found")
+        
+        current_bill = bills[bill_id - 1]
+        
+        # Find previous bill for this account
+        account_number = current_bill.get('account_number')
+        previous_bills = [b for b in bills if b.get('account_number') == account_number 
+                           and b.get('bill_date') < current_bill.get('bill_date')]
+        
+        if not previous_bills:
+            return {
+                "status": "no_previous_bill",
+                "message": "No previous bill found for comparison"
+            }
+        
+        # Get most recent previous bill
+        previous_bill = sorted(
+            previous_bills, 
+            key=lambda b: b.get('bill_date', '2000-01-01'),
+            reverse=True
+        )[0]
+        
+        # Calculate weather-adjusted comparison
+        comparison = compare_bills_weather_adjusted(current_bill, previous_bill)
+        
+        # Add explanation text
+        comparison['explanation'] = get_weather_impact_text(comparison)
+        comparison['status'] = "success"
+        
+        return comparison
+        
+    except Exception as e:
+        print(f"Error in weather comparison: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/gamification/{account_number}")
+async def get_gamification_data(account_number: str):
+    """Get gamification data for a user"""
+    try:
+        user_data = load_user_gamification_data(account_number)
+        summary = generate_gamification_summary(user_data)
+        return summary
+        
+    except Exception as e:
+        print(f"Error getting gamification data: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+

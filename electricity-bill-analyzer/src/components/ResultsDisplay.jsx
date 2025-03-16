@@ -1,12 +1,15 @@
+import React from 'react';
 import BillSummary from './BillSummary';
 import PredictionChart from './PredictionChart';
-import AppliancePieChart from './AppliancePieChart';
-import CompactRecommendations from './CompactRecommendations';
+import RecommendationsList from './RecommendationsList';
+import WeatherComparisonCard from './WeatherComparisonCard';
+import GamificationCard from './GamificationCard';
+import AppliancePieChart from './AppliancePieChart'; // Added missing import
 
 function ResultsDisplay({ results, mode }) {
   // Add safety checks and data preprocessing
   const predictions = results.predictions || [];
-  
+
   return (
     <div className="mt-8 space-y-8">
       <h2 className="text-2xl font-bold text-center text-blue-600">Analysis Results</h2>
@@ -16,6 +19,16 @@ function ResultsDisplay({ results, mode }) {
         userInfo={results.user_info} 
         currentBill={results.current_bill || results.bill_data || {}}
       />
+      
+      {/* Gamification Card */}
+      {results.gamification && (
+        <GamificationCard gamification={results.gamification} />
+      )}
+      
+      {/* Weather Comparison */}
+      {results.weather_comparison && (
+        <WeatherComparisonCard comparison={results.weather_comparison} />
+      )}
       
       {/* Different visualizations based on mode */}
       {mode === 'bill-only' && predictions.length > 0 && (
@@ -65,18 +78,19 @@ function ResultsDisplay({ results, mode }) {
         </div>
       )}
       
-      {/* AI Recommendations - Using new compact version */}
+      {/* AI Recommendations */}
       {results.ai_recommendations && results.ai_recommendations.length > 0 && (
-        <CompactRecommendations recommendations={results.ai_recommendations} />
+        <RecommendationsList recommendations={results.ai_recommendations} />
       )}
       
       {/* Anomalies (if any) */}
-      {results.anomalies && results.anomalies.length > 0 && results.anomalies[0].type !== 'info' && (
+      {results.anomalies && results.anomalies.length > 0 && 
+       (!results.anomalies[0].type || results.anomalies[0].type !== 'info') && (
         <div className="bg-yellow-50 rounded-lg shadow-md p-6">
           <h3 className="text-xl font-semibold mb-4 text-yellow-800">Anomalies Detected</h3>
           <ul className="space-y-2">
             {results.anomalies
-              .filter(anomaly => anomaly.type !== 'info')
+              .filter(anomaly => !anomaly.type || anomaly.type !== 'info')
               .map((anomaly, index) => (
                 <li key={index} className="flex items-start">
                   <span className={`inline-block w-2 h-2 mt-2 mr-2 rounded-full ${

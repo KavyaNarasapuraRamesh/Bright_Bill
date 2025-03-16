@@ -1,0 +1,32 @@
+{
+  "account_number": "110 165 240 562",
+  "total_points": 55,
+  "achievements": [
+    {
+      "title": "Energy Explorer",
+      "description": "Analyzed your first electricity bill",
+      "points": 5,
+      "badge": "rocket",
+      "id": "first_analysis",
+      "date": "2025-03-15"
+    },
+    {
+      "title": "Conservation Champion",
+      "description": "Reduced your energy usage by 20% compared to last month",
+      "points": 50,
+      "badge": "tree",
+      "id": "usage_reduction_20",
+      "date": "2025-03-15"
+    }
+  ],
+  "history": [
+    {
+      "date": "2025-03-15",
+      "kwh_used": 514,
+      "points_earned": 55
+    }
+  ],
+  "reduction_streak": 1,
+  "last_bill_kwh": 514,
+  "last_bill_date": "2025-03-15"
+}
