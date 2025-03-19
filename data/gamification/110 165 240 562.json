@@ -63,9 +63,14 @@
       "date": "2025-03-16",
       "kwh_used": 442,
       "points_earned": 25
+    },
+    {
+      "date": "2025-03-19",
+      "kwh_used": 669,
+      "points_earned": 0
     }
   ],
-  "reduction_streak": 2,
-  "last_bill_kwh": 442,
-  "last_bill_date": "2025-03-16"
+  "reduction_streak": 0,
+  "last_bill_kwh": 669,
+  "last_bill_date": "2025-03-19"
 }
