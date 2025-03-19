@@ -1,7 +1,0 @@
-customer_charge,distribution_related_component,cost_recovery_charges,consumer_rate_credit,distribution_credit,non_standard_credit,utility_charges,supplier_charges,total_bill_amount,prediction_date,predicted_kwh
-4.0,89.73,53.76,-1.02,0,0,146.48,213.25,359.73,2029-01-28,1792
-4.0,89.73,53.76,-1.02,0,0,146.48,213.25,359.73,2029-02-27,1792
-4.0,52.58,31.5,-1.02,0,0,87.06,124.95,212.01,2029-03-29,1050
-4.0,52.58,31.5,-1.02,0,0,87.06,124.95,212.01,2029-04-28,1050
-4.0,53.03,31.77,-1.02,0,0,87.78,126.02,213.8,2029-05-28,1059
-4.0,29.94,17.94,-1.02,0,0,50.87,71.16,122.03,2029-06-27,598
